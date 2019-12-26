@@ -49,8 +49,8 @@ def money_clean(data):
     data['money raised']= data['money raised'].replace('[€$£]','',regex=True)
     #data['money raised']= data['money raised'].apply(np.int64)
     data['money raised']= data['money raised'].map(pd.eval)
-    #data=data[data!=0].dropna()
-    return money_comp
+    data=data[data!=0].dropna()
+    return data
 
 def category(data):
     
@@ -58,6 +58,7 @@ def category(data):
     
     web_design = {'search': 'web','mobile': 'web','web': 'web','games_video': 'web','ecommerce': 'web','advertising': 'web',
               'hardware': 'web','enterprise': 'web','network_hosting': 'web','software': 'web',
-              'analytics': 'web','cleantech': 'web'}
+              'analytics': 'web','cleantech': 'web','design': 'web', 'photo_video': 'web', 'security':'web','biotech':'web','messaging':'web'}
     data = money_clean(data).replace(web_design, regex=True)
-    return money_comp
+    data_new = data[data['category']== 'web']
+    return data_new
