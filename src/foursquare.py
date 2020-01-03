@@ -71,3 +71,55 @@ for coord in geo:
             request = (getNearby(coord[1],coord[0],value['api'],value['distance']))
         except:
             Exception: "Ha habido problemas con {}".formate(place)
+def curateResponse(data):
+    """ Function for clean request and clean errors """
+    places = []
+    for item in data:
+        try:
+            for i in item["response"]["groups"][0]["items"]:
+                if i["venue"]['location']['city'] != None:
+                    places.append({
+                        "name":i["venue"]['name'],
+                        "distance": i["venue"]['location']["distance"],
+                        "country": i["venue"]['location']["country"],
+                        "city": i["venue"]['location']['city'],
+                        "latitude": i["venue"]['location']["lat"],
+                        "longitude": i["venue"]['location']["lng"],
+                        "coordinates": {
+                        "type":"Point",
+                        "coordinates":[i["venue"]['location']["lng"], i["venue"]['location']["lat"]]
+                            }})
+        except:
+            print(f"Ha ocurrido algún error.")
+    return places
+data = pd.DataFrame(curateResponse(p))
+groups= {
+    "Coffee Shop": 'Starbucks',
+    "Airport":['San Carlos Airport (SQL) (San Carlos Airport)',
+                "Santa Monica Airport (SMO) (Santa Monica Airport)","London City Airport (LCY) (London City Airport)",
+                "St. Petersburg - Clearwater International Airport (PIE)",
+                "Stockholm-Bromma Airport (BMA) (Stockholm-Bromma Airport)",
+                "San Francisco International Airport (SFO) (San Francisco International Airport)",
+                "LaGuardia Airport (LGA) (LaGuardia Airport)"],
+    "Bar":["Bar","Nightcub","Cocktail Bar","Pub","Plunge Rooftop Bar & Lounge","Audio Nightclub","Temple Nightclub",
+            "Momofuku Ssäm Bar","Absinthe Brasserie & Bar","Cue Bar","Ritz Bar & Lounge"],
+    "School": ["Petite Sorbonne Preschool","Trinity Preschool","Preschool of America","School","MS 297 Middle School",
+               "Village Community School","Chelsea School","Public School 3","St. Matthew Catholic School",
+              "De School Van Mieke Petiet","Goethe Instituut","Altra College","AltSchool",
+               "Alta Vista School","Mission Montessori","Step by Step Early Childhood",
+               "Grace Church School","Greenwich Village School","Santa Monica High School",
+               "Stuyvesant High School","Norman Thomas High School","North Shoreview Montessori",
+               "Highland Montessori","St. Timothy Catholic School","High Point Elementary School"],
+    "Vegan": ["Thai Vegan ","Maoz Vegan" , "Urban Vegan Kitchen", "Golden Era Vegan", 
+              "Vegan Junk Food Bar","Garden Fresh Vegan Cuisine ","Elovate Vegan Kitchen","Vegetarian Oasis","Maoz"]
+}
+
+def chooseCat(prod):
+    for groupName, groupItems in groups.items():
+        if prod in groupItems:
+            return groupName
+    return "OTHER"
+data["category"] = data.name.apply(chooseCat)
+
+# Puntuación en función de la distancia de cada categría:
+
