@@ -1,6 +1,6 @@
 # Geolocation-Project
 
-![Map](https://github.com/mariaversin/geo-project/view/mapNY.html)
+![Map](https://github.com/mariaversin/geo-project/blob/master/mapNY.html)
 
 **Objetivo** --> encontrar la mejor localización de nuestra empresa teniendo en cuenta los siguientes criterios:
 
