@@ -1,64 +1,54 @@
-from mongo import connectCollection
 import pandas as pd
 import numpy as np
+import os
+import json
+from dotenv import load_dotenv
+load_dotenv()
+import requests
 
 
-db, coll = connectCollection('dbcompanies','companies') 
-filter1 = [
-    {"$match": {"$and":
-            [{"founded_year": {"$gte": 2009}}, # Fundadas a partir del 2009
-             {"deadpooled_year": None}, # Que no hayan quebrado
-             {"offices.latitude": {"$exists": True, "$ne": None}}, # Que tengan latitud
-             {"offices.longitude": {"$exists": True, "$ne": None}}]}}] # Que tengan longitud
+def getNearby(lat,lng,query,radius):
 
-offices = list(coll.aggregate(filter1))
-def prepareData(bd):
-    '''Function to clean data'''
-    cleanedItems = []
-    errors = 0
-    for group in offices:
-        for item in range(len(group['offices'])):
-            try:
-                cleanedItems.append({
-                "name":group["name"],
-                "employees": group['number_of_employees'],
-                "year":group['founded_year'],
-                "category":group['category_code'],
-                "id":group['_id'],
-                "money raised":group['total_money_raised'],
-                "city" : group['offices'][item]['city'],
-                "country" : group['offices'][item]['country_code'],
-                "latitude" : group['offices'][item]['latitude'],
-                "longitude" : group['offices'][item]['longitude'],
-                "coordinates":{
-                    "type":"Point",
-                    "coordinates":[group['offices'][item]['longitude'],group['offices'][item]['latitude']]}})
-            except Exception:
-                errors += 1
-                if errors > 0:
-                    print(f"Hay {errors} errores")
-    return cleanedItems
-
-data = pd.DataFrame(prepareData(offices))
-
-def money_clean(data):
+    """ Function for queries """
     
-    ''' Function to convert money raised to int '''
-    
-    data['money raised']= data['money raised'].replace('[Kk]', '*100',regex = True).replace( 'M', '*1000000',regex=True)
-    data['money raised']= data['money raised'].replace('[€$£]','',regex=True)
-    #data['money raised']= data['money raised'].apply(np.int64)
-    data['money raised']= data['money raised'].map(pd.eval)
-    data=data[data!=0].dropna()
-    return data
+    CLIENT_ID = os.getenv("client_id")
+    CLIENT_SECRET = os.getenv("client_secret")
+    url = 'https://api.foursquare.com/v2/venues/explore'
+    queryParams = dict(
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        v='20181023', # DONDE ESTOY
+        ll=f"{lat},{lng}", #QUE QUIERO
+        query=query, # A QUE DISTANCIA
+        radius=radius
+    )
+    res = requests.get(url, params=queryParams)
+    return res.json()
 
-def category(data):
-    
-    ''' Function to clean category column '''
-    
-    web_design = {'search': 'web','mobile': 'web','web': 'web','games_video': 'web','ecommerce': 'web','advertising': 'web',
-              'hardware': 'web','enterprise': 'web','network_hosting': 'web','software': 'web',
-              'analytics': 'web','cleantech': 'web','design': 'web', 'photo_video': 'web', 'security':'web','biotech':'web','messaging':'web'}
-    data = money_clean(data).replace(web_design, regex=True)
-    data_new = data[data['category']== 'web']
-    return data_new
+def curateResponse(data):
+    """ Function for clean request and clean errors """
+    places = []
+    for item in data:
+        try:
+            for i in item["response"]["groups"][0]["items"]:
+                if i["venue"]['location']['city'] != None:
+                    places.append({
+                        "name":i["venue"]['name'],
+                        "distance": i["venue"]['location']["distance"],
+                        "country": i["venue"]['location']["country"],
+                        "city": i["venue"]['location']['city'],
+                        "latitude": i["venue"]['location']["lat"],
+                        "longitude": i["venue"]['location']["lng"],
+                        "coordinates": {
+                        "type":"Point",
+                        "coordinates":[i["venue"]['location']["lng"], i["venue"]['location']["lat"]]
+                            }})
+        except:
+            print(f"Ha ocurrido algún error.")
+    return places
+
+def chooseCat(prod):
+    for groupName, groupItems in groups.items():
+        if prod in groupItems:
+            return groupName
+    return "OTHER"
